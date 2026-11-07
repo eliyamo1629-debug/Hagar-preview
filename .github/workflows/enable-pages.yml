@@ -1,4 +1,4 @@
-name: Enable GitHub Pages
+name: Deploy GitHub Pages
 
 on:
   push:
@@ -15,23 +15,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  enable:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Request a Pages build from the default branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set +e
-          echo "POST /pages/builds"
-          gh api --method POST -i "repos/${GITHUB_REPOSITORY}/pages/builds" -H "Accept: application/vnd.github+json"
-          echo
-          echo "GET /pages"
-          gh api -i "repos/${GITHUB_REPOSITORY}/pages" -H "Accept: application/vnd.github+json"
-          echo
-          echo "GET /pages/builds/latest"
-          gh api -i "repos/${GITHUB_REPOSITORY}/pages/builds/latest" -H "Accept: application/vnd.github+json"
-
       - name: Checkout
         uses: actions/checkout@v4
 

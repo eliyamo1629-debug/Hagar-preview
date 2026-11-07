@@ -10,40 +10,41 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   enable:
     runs-on: ubuntu-latest
     steps:
-      - name: Enable Pages from main root
+      - name: Request a Pages build from the default branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
-          echo "POST create"
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" \
-            -H "Accept: application/vnd.github+json" \
-            --input - <<'EOF'
-          {
-            "build_type": "legacy",
-            "source": {
-              "branch": "main",
-              "path": "/"
-            }
-          }
-          EOF
-          echo "POST exit: $?"
-          echo "PUT update"
-          gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" \
-            -H "Accept: application/vnd.github+json" \
-            --input - <<'EOF'
-          {
-            "source": {
-              "branch": "main",
-              "path": "/"
-            }
-          }
-          EOF
-          echo "PUT exit: $?"
-          echo "GET pages"
-          gh api "repos/${GITHUB_REPOSITORY}/pages"
-          echo "GET exit: $?"
+          echo "POST /pages/builds"
+          gh api --method POST -i "repos/${GITHUB_REPOSITORY}/pages/builds" -H "Accept: application/vnd.github+json"
+          echo
+          echo "GET /pages"
+          gh api -i "repos/${GITHUB_REPOSITORY}/pages" -H "Accept: application/vnd.github+json"
+          echo
+          echo "GET /pages/builds/latest"
+          gh api -i "repos/${GITHUB_REPOSITORY}/pages/builds/latest" -H "Accept: application/vnd.github+json"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage site files
+        run: |
+          mkdir -p _site
+          cp -a index.html style.css script.js assets .nojekyll README.md _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

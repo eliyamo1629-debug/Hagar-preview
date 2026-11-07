@@ -1,0 +1,49 @@
+name: Enable GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable Pages from main root
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          echo "POST create"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" \
+            -H "Accept: application/vnd.github+json" \
+            --input - <<'EOF'
+          {
+            "build_type": "legacy",
+            "source": {
+              "branch": "main",
+              "path": "/"
+            }
+          }
+          EOF
+          echo "POST exit: $?"
+          echo "PUT update"
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" \
+            -H "Accept: application/vnd.github+json" \
+            --input - <<'EOF'
+          {
+            "source": {
+              "branch": "main",
+              "path": "/"
+            }
+          }
+          EOF
+          echo "PUT exit: $?"
+          echo "GET pages"
+          gh api "repos/${GITHUB_REPOSITORY}/pages"
+          echo "GET exit: $?"
